@@ -1,41 +1,55 @@
 <template>
-  <div class="address-card">
-    <div class="address-card--mid">
+  <div class="card">
+    <div class="left">
       <div>
-        {{ address.name }} {{ address.phone }}
-        <van-tag type="primary" v-if="address.isDefault">默认</van-tag>
+        <van-tag type="primary" v-if="address.default">默认</van-tag>
+        <span>{{ address.area }}</span>
       </div>
-      <div>{{ address.detail }}</div>
+      <div class="address-detail">{{ address.detail }}</div>
+      <div class="namePhone-container">
+        <span class="address-name van-ellipsis">{{ address.name }}</span>
+        <span class="address-phone">{{ address.phone }}</span>
+      </div>
     </div>
-    <div class="address-card--action">
-      <van-icon name="edit" @click="$emit('clickEdit')" />
-      <van-icon name="delete-o" @click="$emit('clickDelete')" />
+    <div class="right">
+      <slot name="right-content" />
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: "AddressCard",
   props: {
-    address: Object,
+    address: null,
   },
 };
 </script>
 
 <style scoped>
-.address-card {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  padding: 10px;
+.card {
   border-radius: 10px;
   background-color: white;
+  color: gray;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 5px;
+  font-size: 12px;
 }
-.address-card--mid {
+.left {
   flex-grow: 1;
 }
-.address-card--action {
+.right {
   flex-shrink: 0;
+}
+.address-detail {
+  font-size: 13px;
+  font-weight: bold;
+  color: black;
+}
+.address-name {
+  display: inline-block;
+  width: 60px;
 }
 </style>

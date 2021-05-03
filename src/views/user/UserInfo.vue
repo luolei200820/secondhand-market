@@ -1,200 +1,144 @@
 <template>
-  <div class="user-edit">
+  <div class="userinfo">
     <van-nav-bar
-      title="个人信息设置"
+      fixed
+      title="用户信息"
       left-text="返回"
       left-arrow
       @click-left="$router.go(-1)"
     />
 
-    <van-cell-group style="margin: 10px 0">
-      <van-cell
-        title="头像"
-        center
-        is-link
-        @click="showChangeAvatarDialog = true"
+    <van-form ref="form">
+      <van-field
+        label="头像"
+        :rules="[{ required: true, message: '请选择头像' }]"
       >
-        <van-image
-          :src="imgURL(user.avatar) || defaultAvatar"
-          round
-          width="60px"
-          height="60px"
-        ></van-image>
-      </van-cell>
-      <van-cell
-        title="用户名"
-        :value="user.username"
-        is-link
-        @click="showChangeUsernameDialog = true"
+        <template #input>
+          <van-uploader
+            :before-read="imageCompress"
+            v-model="user.avatar"
+            :max-count="1"
+          />
+        </template>
+      </van-field>
+      <van-field
+        v-model="user.username"
+        label="用户名"
+        placeholder="用户名"
+        :rules="[{ required: true, message: '请填写用户名' }]"
       />
-    </van-cell-group>
-
-    <van-dialog
-      v-model="showChangeAvatarDialog"
-      title="更换头像"
-      show-cancel-button
-      :beforeClose="confirmChangeAvatar"
-    >
-      <van-form ref="changeAvatarForm">
-        <van-field :rules="[{ required: true, message: '请选择头像' }]">
-          <template #input>
-            <van-uploader
-              :before-read="beforeRead"
-              v-model="avatar"
-              :max-count="1"
-              class="avatar-uploader"
-            ></van-uploader>
-          </template>
-        </van-field>
-      </van-form>
-    </van-dialog>
-
-    <van-dialog
-      v-model="showChangeUsernameDialog"
-      title="修改用户名"
-      show-cancel-button
-      :beforeClose="confirmChangeUsername"
-    >
-      <van-form ref="changeUsernameForm">
-        <van-field
-          v-model="username"
-          label="用户名"
-          placeholder="长度2-20 支持英文/符号/汉字"
-          maxlength="20"
-          :rules="[
-            { required: true, message: '请填写用户名' },
-            {
-              validator: usernameValidator,
-              message: '未正确输入用户名',
-            },
-          ]"
-        ></van-field>
-      </van-form>
-    </van-dialog>
+      <van-field
+        v-model="user.email"
+        label="邮箱"
+        placeholder="邮箱"
+        :rules="[
+          { required: true, message: '请填写邮箱' },
+          {
+            pattern: /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/,
+            message: '请输入正确的邮箱格式',
+          },
+        ]"
+      />
+      <van-field
+        v-model="user.phone"
+        label="电话"
+        placeholder="电话"
+        :rules="[
+          { required: true, message: '请填写电话' },
+          {
+            pattern: /^(13[0-9]|14[0-9]|15[0-9]|16[2|5|6|7]|17[0-9]|18[0-9]|19[0-9])\d{8}$/,
+            message: '请输入正确的电话格式',
+          },
+        ]"
+      />
+      <div class="btn-container">
+        <van-button
+          round
+          block
+          size="small"
+          type="info"
+          @click="submit"
+          :loading="loading"
+        >
+          提交
+        </van-button>
+      </div>
+    </van-form>
   </div>
 </template>
 
 <script>
-import defaultAvatar from "@/assets/avatar3.jpg";
-import imageCompression from "browser-image-compression";
-import imgURL from "@/utils/imgURL";
-import axios from "@/axios";
+import imageCompress from "../../utils/imageCompress";
+import axios from "../../axios";
+import imgURL from "../../utils/imgURL";
 
 export default {
+  name: "UserInfo",
   data() {
     return {
-      defaultAvatar,
-      avatar: [],
-      username: "",
-      showChangeAvatarDialog: false,
-      showChangeUsernameDialog: false,
+      loading: false,
+      user: {
+        avatar: [],
+        username: "",
+        email: "",
+        phone: "",
+      },
     };
   },
-  computed: {
-    user() {
-      return this.$store.state.user;
-    },
-  },
   methods: {
-    imgURL,
-    usernameValidator(username) {
-      const regex = /^[\x21-\x7E\u4E00-\u9FA5]{2,20}$/;
-      return regex.test(username);
+    imageCompress,
+    copyUserInfo() {
+      if (this.$store.state.user.avatar) {
+        this.user.avatar.push({
+          url: imgURL(this.$store.state.user.avatar),
+        });
+      }
+      this.user.username = this.$store.state.user.username;
+      this.user.email = this.$store.state.user.email;
+      this.user.phone = this.$store.state.user.phone;
     },
-    // 在读取图片前进行文件扩展名、大小检查，对超过200KB的图片进行压缩
-    async beforeRead(file) {
+    async submit() {
       try {
-        if (file.type !== "image/jpeg") {
-          this.$toast("请选择jpg或jpeg格式的图片");
-          return Promise.reject();
-        } else if (file.size <= 200 * 1024) {
-          // 文件小于200KB直接返回图片
-          return file;
+        await this.$refs["form"].validate();
+      } catch {
+        return;
+      }
+      try {
+        const formDate = new FormData();
+        formDate.append("username", this.user.username);
+        formDate.append("email", this.user.email);
+        formDate.append("phone", this.user.phone);
+        if (this.user.avatar[0].file) {
+          formDate.append("avatar", this.user.avatar[0].file);
+        }
+        this.loading = true;
+        const res = await axios.post("/user/edit", formDate);
+        this.loading = false;
+        if (res.data.state === 1) {
+          this.$toast.success("修改成功");
+          this.$store.commit("setLogin", res.data.user);
+          this.$router.go(-1);
         } else {
-          const blob = await imageCompression(file, { maxSizeMB: 0.2 });
-          return new File([blob], file.name, { type: "image/jpeg" });
+          this.$toast.fail(res.data.msg);
         }
       } catch (err) {
-        console.error(err);
-        return Promise.reject();
+        this.$toast.fail("网络错误");
+        console.log(err);
       }
     },
-    // 确认修改头像
-    confirmChangeAvatar(action, done) {
-      if (action === "confirm") {
-        this.$refs["changeAvatarForm"]
-          .validate()
-          .then(() => {
-            const form = new FormData();
-            form.append("avatar", this.avatar[0].file);
-            axios
-              .post("/user/change-avatar", form)
-              .then((res) => {
-                if (res.data.state === 1) {
-                  this.$toast.success("头像修改成功");
-                  this.$store.commit("setUserAvatar", res.data.avatar);
-                  done();
-                } else {
-                  this.$toast.fail(res.data.msg);
-                  done(false);
-                }
-              })
-              .catch((err) => {
-                this.$toast.fail("网络错误");
-                done(false);
-                console.log(err);
-              });
-          })
-          .catch(() => {
-            done(false);
-          });
-      } else {
-        done();
-      }
-    },
-    // 确认修改用户名
-    confirmChangeUsername(action, done) {
-      if (action === "confirm") {
-        this.$refs["changeUsernameForm"]
-          .validate()
-          .then(() => {
-            axios
-              .post("/user/change-username", { username: this.username })
-              .then((res) => {
-                if (res.data.state === 1) {
-                  this.$toast.success("用户名修改成功");
-                  this.$store.commit("setUserUsername", res.data.username);
-                  done();
-                } else {
-                  this.$toast.fail(res.data.msg);
-                  done(false);
-                }
-              })
-              .catch((err) => {
-                this.$toast.fail("网络错误");
-                done(false);
-                console.log(err);
-              });
-          })
-          .catch(() => {
-            done(false);
-          });
-      } else {
-        done();
-      }
-    },
+  },
+  created() {
+    this.copyUserInfo();
   },
 };
 </script>
 
 <style scoped>
-.user-edit {
-  min-height: 100vh;
+.userinfo {
+  min-height: calc(100vh - 46px);
+  padding-top: 46px;
 }
-.avatar-uploader {
-  display: flex;
-  justify-content: center;
-  padding: 20px 0;
-  width: 100%;
+.btn-container {
+  padding: 10px;
 }
 </style>

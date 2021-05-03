@@ -2,58 +2,37 @@ import Vue from 'vue'
 import VueRouter from 'vue-router'
 import store from '../store'
 
-const Market = () => import('../views/market/Market.vue')
-const Home = () => import('../views/market/children/Home.vue')
-const Category = () => import('../views/market/children/Category.vue')
-const ShoppingCart = () => import('../views/market/children/ShoppingCart.vue')
-const User = () => import('../views/market/children/User.vue')
-const ProductUpload = () => import('../views/product/ProductUpload.vue')
-const ProductSearch = () => import('../views/product/ProductSearch.vue')
-const ProductDetail = () => import('../views/product/ProductDetail.vue')
-const ProductComment = () => import('../views/product/ProductComment.vue')
-const ProductEdit = () => import('../views/product/ProductEdit.vue')
-const UserInfo = () => import('../views/user/UserInfo.vue')
-const Address = () => import('../views/user/address/Address.vue')
-const AddressAdd = () => import('../views/user/address/AddressAdd.vue')
-const AddressEdit = () => import('../views/user/address/AddressEdit.vue')
-const ProductManage = () => import('../views/user/product/ProductManage.vue')
-const ProductSold = () => import('../views/user/product/ProductSold.vue')
-const Order = () => import('../views/user/order/Order.vue')
-const OrderDetail = () => import('../views/user/order/OrderDetail.vue')
-const UserLogin = () => import('../views/user/UserLogin.vue')
-const UserRegist = () => import('../views/user/UserRegist.vue')
+const Home = () => import('../views/Home.vue')
+const User = () => import('../views/User.vue')
+const Category = () => import('../views/Category.vue')
+const Login = () => import('../views/Login.vue')
+const UserInfo = () => import('../views/User/UserInfo.vue')
+const UserPurchase = () => import('../views/User/UserPurchase.vue')
+const UserSale = () => import('../views/User/UserSale.vue')
+const UserUpload = () => import('../views/User/UserUpload.vue')
+const ShoppingCart = () => import('../views/ShoppingCart.vue')
+const AddressList = () => import('../views/Address/AddressList.vue')
+const AddressAdd = () => import('../views/Address/AddressAdd.vue')
+const AddressEdit = () => import('../views/Address/AddressEdit.vue')
+const CommodityDetail = () => import('../views/Commodity/CommodityDetail.vue')
+const CommoditySearch = () => import('../views/Commodity/CommoditySearch.vue')
+const CommodityUpload = () => import('../views/Commodity/CommodityUpload.vue')
+const LeavingMessage = () => import('../views/Commodity/LeavingMessage.vue')
+const Transaction = () => import('../views/Transaction.vue')
 
 Vue.use(VueRouter)
 
 const router = new VueRouter({
   routes: [
     {
-      path: '/',
-      component: Market,
-      children: [
-        {
-          path: '',
-          redirect: 'home'
-        },
-        {
-          path: 'home',
-          component: Home,
-        },
-        {
-          path: 'category',
-          component: Category
-        },
-        {
-          path: 'shopping-cart',
-          component: ShoppingCart,
-          meta: { requireLogin: true }
-        },
-        {
-          path: 'user',
-          component: User,
-          meta: { requireLogin: true }
-        }
-      ]
+      path: "/",
+      component: Home,
+      meta: { showTabbar: true }
+    },
+    {
+      path: '/user',
+      component: User,
+      meta: { showTabbar: true, requireLogin: true }
     },
     {
       path: '/user/info',
@@ -61,103 +40,91 @@ const router = new VueRouter({
       meta: { requireLogin: true }
     },
     {
-      path: '/user/address',
-      component: Address,
+      path: '/user/purchase',
+      component: UserPurchase,
       meta: { requireLogin: true }
     },
     {
-      path: '/user/address/add',
+      path: '/user/sale',
+      component: UserSale,
+      meta: { requireLogin: true }
+    },
+    {
+      path: '/user/upload',
+      component: UserUpload,
+      meta: { requireLogin: true }
+    },
+    {
+      path: '/category',
+      component: Category,
+      meta: { showTabbar: true }
+    },
+    {
+      path: '/shopping-cart',
+      component: ShoppingCart,
+      meta: { showTabbar: true, requireLogin: true }
+    },
+    {
+      path: '/address',
+      component: AddressList,
+      meta: { requireLogin: true }
+    },
+    {
+      path: '/address/add',
       component: AddressAdd,
       meta: { requireLogin: true }
     },
     {
-      path: '/user/address/edit/:id',
+      path: '/address/edit/:id',
       component: AddressEdit,
       meta: { requireLogin: true }
     },
     {
-      path: '/user/product-manage',
-      component: ProductManage,
+      path: '/commodity/upload',
+      component: CommodityUpload,
       meta: { requireLogin: true }
     },
     {
-      path: '/user/product-sold',
-      component: ProductSold,
-      meta: { requireLogin: true }
+      path: '/commodity/search',
+      component: CommoditySearch
     },
     {
-      path: '/user/order',
-      component: Order,
-      meta: { requireLogin: true }
+      path: '/commodity/:id',
+      component: CommodityDetail
     },
     {
-      path: '/user/order/:id',
-      component: OrderDetail,
-      meta: { requireLogin: true }
+      path: '/commodity/:id/messages',
+      component: LeavingMessage
     },
     {
-      path: '/product/upload',
-      component: ProductUpload,
-      meta: { requireLogin: true }
-    },
-    {
-      path: '/product/search',
-      component: ProductSearch
-    },
-    {
-      path: '/product/:id',
-      component: ProductDetail
-    },
-    {
-      path: '/product/comments/:id',
-      component: ProductComment,
-    },
-    {
-      path: '/product/edit/:id',
-      component: ProductEdit,
+      path: '/transaction',
+      component: Transaction,
       meta: { requireLogin: true }
     },
     {
       path: '/login',
-      component: UserLogin
-    },
-    {
-      path: '/regist',
-      component: UserRegist
+      component: Login
     }
   ]
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requireLogin) {
-    // 需要登录的页面
-    if (store.state.isLogin) next()
-    else {
-      const token = localStorage.getItem('token')
-      if (token) {
-        store.dispatch('autoLogin', token).then(() => {
-          if (to.meta.requireAdmin) {
-            // 管理员页面
-            if (store.state.user.type === 'admin') {
-              next()
-            } else {
-              next('/404')
-            }
-          } else {
-            next()
-          }
-        }).catch(() => {
-          next('/login')
-        })
-      } else {
+  if (to.matched.some((record) => {
+    return record.meta.requireLogin
+  })) {
+    if (store.state.isLogin) {
+      next()
+    } else {
+      // 尝试自动登录
+      store.dispatch('autoLogin').then(() => {
+        next()
+      }).catch(err => {
+        console.log(err)
         next('/login')
-      }
+      })
     }
-  }
-  else {
-    // 不需要权限的页面，如果没有登录则尝试自动登录
-    const token = localStorage.getItem('token')
-    if (!store.state.isLogin && token) store.dispatch('autoLogin', token)
+  } else {
+    if (!store.state.isLogin) store.dispatch('autoLogin')
     next()
   }
 })

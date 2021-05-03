@@ -6,57 +6,56 @@ Vue.use(Vuex)
 
 const store = new Vuex.Store({
     state: {
-        isLogin: false,
         user: null,
-        shoppingCartItems: []
+        isLogin: false,
+        shoppingCartItemList: []
     },
     mutations: {
-        setLogin(state, payload) {
+        setLogin(state) {
             state.isLogin = true
-            state.user = payload.user
-            state.shoppingCartItems = payload.shoppingCartItems
         },
         setLogout(state) {
             state.isLogin = false
-            state.user = null
-            state.shoppingCartItems = []
-            // 清除axios头部的token
-            axios.defaults.headers['Authorization'] = ''
+        },
+        setUser(state, user) {
+            state.user = user
+        },
+        setShoppingCart(state, shoppingCartItemList) {
+            state.shoppingCartItemList = shoppingCartItemList
         },
         addShoppingCartItem(state, shoppingCartItem) {
-            state.shoppingCartItems.push(shoppingCartItem)
+            state.shoppingCartItemList.push(shoppingCartItem)
         },
-        deleteShoppingCartItems(state, ids) {
-            ids.forEach(id => {
-                let index = state.shoppingCartItems.findIndex(item => {
-                    return item.id === id
-                })
-                if (index !== -1) {
-                    state.shoppingCartItems.splice(index, 1)
-                }
-            })
-        },
-        setUserAvatar(state, avatar) {
-            state.user.avatar = avatar
-        },
-        setUserUsername(state, username) {
-            state.user.username = username
+        deleteShoppingCartItem(state, id) {
+            let index = state.shoppingCartItemList.findIndex((item) => {
+                return item.id === id;
+            });
+            if (index !== -1) {
+                state.shoppingCartItemList.splice(index, 1);
+            }
         }
     },
     actions: {
-        autoLogin({ commit }, token) {
-            return new Promise((reslove, reject) => {
-                if (!token) reject(new Error('no token'))
-                axios.defaults.headers['Authorization'] = token
-                axios.post('/user/auto-login').then(res => {
+        async autoLogin({ commit }) {
+            try {
+                const token = localStorage.getItem('token')
+                if (token) {
+                    axios.defaults.headers.common['Authorization'] = token
+                    const res = await axios.post('/user/auto-login')
                     if (res.data.state === 1) {
-                        commit('setLogin', res.data)
-                        reslove()
+                        commit('setLogin')
+                        commit('setUser', res.data.user)
+                        commit('setShoppingCart', res.data.shoppingCartItemList)
+                        return Promise.resolve()
+                    } else {
+                        return Promise.reject(new Error(res.data.msg))
                     }
-                }).catch(err => {
-                    reject(err)
-                })
-            })
+                } else {
+                    return Promise.reject()
+                }
+            } catch (err) {
+                return Promise.reject(err)
+            }
         }
     }
 })
